@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: wasl-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: UPLOAD_DIR
+        value: /tmp/wasl_uploads
+      - key: OUTPUT_DIR
+        value: /tmp/wasl_outputs
+      - key: MAX_FILE_AGE
+        value: "1800"
+      - key: FRONTEND_URL
+        value: "*"
+      - key: REDIS_URL
+        value: ""
