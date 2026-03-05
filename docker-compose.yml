@@ -1,0 +1,119 @@
+# ============================================================
+# === docker-compose.yml - منصة وصل ===
+# === يُشغّل جميع خدمات المنصة معاً ===
+# ============================================================
+#
+# الخدمات:
+#   1. frontend  - واجهة المستخدم (Next.js)
+#   2. backend   - الخادم الخلفي (FastAPI)
+#   3. worker    - عامل معالجة المهام (Celery)
+#   4. redis     - وسيط الرسائل (Message Broker)
+#   5. nginx     - خادم وكيل عكسي (Reverse Proxy)
+#
+# التشغيل:
+#   docker-compose up -d --build
+#
+# الإيقاف:
+#   docker-compose down
+# ============================================================
+
+version: '3.8'
+
+services:
+  # === 1. الواجهة الأمامية (Frontend) ===
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wasl_frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - wasl_network
+
+  # === 2. الخادم الخلفي (Backend) ===
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wasl_backend
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - UPLOAD_DIR=/tmp/wasl_uploads
+      - OUTPUT_DIR=/tmp/wasl_outputs
+      - MAX_FILE_AGE=1800
+      - FRONTEND_URL=http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - upload_data:/tmp/wasl_uploads
+      - output_data:/tmp/wasl_outputs
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - wasl_network
+
+  # === 3. عامل معالجة المهام (Celery Worker) ===
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wasl_worker
+    command: celery -A celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - UPLOAD_DIR=/tmp/wasl_uploads
+      - OUTPUT_DIR=/tmp/wasl_outputs
+    volumes:
+      - upload_data:/tmp/wasl_uploads
+      - output_data:/tmp/wasl_outputs
+    depends_on:
+      - redis
+      - backend
+    restart: unless-stopped
+    networks:
+      - wasl_network
+
+  # === 4. Redis - وسيط الرسائل ===
+  redis:
+    image: redis:7-alpine
+    container_name: wasl_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - wasl_network
+
+  # === 5. Nginx - خادم وكيل عكسي ===
+  nginx:
+    image: nginx:alpine
+    container_name: wasl_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - wasl_network
+
+# === الشبكة ===
+networks:
+  wasl_network:
+    driver: bridge
+
+# === وحدات التخزين ===
+volumes:
+  upload_data:
+  output_data:
+  redis_data:

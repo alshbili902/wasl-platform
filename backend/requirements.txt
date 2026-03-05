@@ -1,0 +1,29 @@
+# === الحزم الأساسية للخادم ===
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+celery[redis]==5.3.6
+redis==5.0.1
+
+# === معالجة ملفات PDF ===
+PyPDF2==3.0.1
+pdf2image==1.16.3
+reportlab==4.0.8
+
+# === معالجة الصور ===
+Pillow==10.1.0
+rembg==2.0.50
+
+# === معالجة الفيديو والصوت ===
+ffmpeg-python==0.2.0
+
+# === أدوات النصوص والبرمجة ===
+python-jose==3.3.0
+pydantic==2.5.2
+pydantic-settings==2.1.0
+
+# === أدوات مساعدة ===
+aiofiles==23.2.1
+apscheduler==3.10.4
+python-dotenv==1.0.0
+httpx==0.25.2
